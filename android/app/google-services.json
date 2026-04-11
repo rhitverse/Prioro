@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "209652002579",
+    "project_id": "prioro-1b8e6",
+    "storage_bucket": "prioro-1b8e6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:209652002579:android:11c761e7ccf34dfdf834e6",
+        "android_client_info": {
+          "package_name": "com.example.prioro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC9u0cPkyzHGRSw43nQJAqQuApzpfQBW2A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
