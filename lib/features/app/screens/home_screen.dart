@@ -21,16 +21,13 @@ class _HomeScreenState extends State<HomeScreen> {
     return IndexedStack(
       index: currentIndex,
       children: [
-        // Home Tab
         _buildHomeContent(user),
-        // Tasks Tab
         TaskScreen(
           currentIndex: currentIndex,
           onTabChange: (index) {
             setState(() => currentIndex = index);
           },
         ),
-        // Profile Tab
         ProfileScreen(
           currentIndex: currentIndex,
           onTabChange: (index) {
@@ -47,7 +44,6 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Colors.grey.shade100,
       body: Column(
         children: [
-          // Header
           Container(
             decoration: BoxDecoration(
               color: Colors.orange.shade400,
@@ -71,7 +67,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          // User Info Card
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -127,7 +122,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                // Stats Cards
                 Row(
                   children: [
                     Expanded(

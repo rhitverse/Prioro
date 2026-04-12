@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:prioro/colors.dart';
 import 'package:prioro/features/app/widgets/bottom_nav_bar.dart';
 import 'package:prioro/features/app/data/info.dart';
 import 'package:prioro/features/app/screens/task/task_details_screen.dart';
@@ -45,15 +46,73 @@ class _TaskScreenState extends State<TaskScreen> {
     super.dispose();
   }
 
+  bool _isOverdue(Map<String, dynamic> task) {
+    final dueDate = DateTime.tryParse(task['dueDate'] ?? '');
+    final status = task['status'] ?? '';
+    if (dueDate == null || status == 'completed') return false;
+    return dueDate.isBefore(DateTime.now());
+  }
+
+  Color _getTaskColor(Map<String, dynamic> task) {
+    if (_isOverdue(task)) return Colors.red;
+    switch (task['status']) {
+      case 'completed':
+        return Colors.green;
+      case 'blocked':
+        return Colors.red;
+    }
+    switch (task['priority']) {
+      case 'high':
+        return Colors.red;
+      case 'medium':
+        return Colors.orange;
+    }
+    return Colors.grey;
+  }
+
+  String _formatDate(String? dateString) {
+    if (dateString == null || dateString.isEmpty) return 'No date';
+    try {
+      final date = DateTime.parse(dateString);
+      final day = date.day;
+      final month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.month - 1];
+      final year = date.year;
+      return '$day $month \'${year.toString().substring(2)}';
+    } catch (e) {
+      return dateString;
+    }
+  }
+
   List<Map<String, dynamic>> _filterTasks(
     List<Map<String, dynamic>> tasks,
     String searchQuery,
   ) {
-    if (searchQuery.isEmpty) {
-      return tasks;
+    var filtered = tasks;
+
+    if (selectedFilter != 'All') {
+      filtered = filtered.where((task) {
+        switch (selectedFilter) {
+          case 'High priority':
+            return task['priority'] == 'high' ||
+                _getTaskColor(task) == Colors.red;
+          case 'Medium':
+            return task['priority'] == 'medium';
+          case 'Low':
+            return task['priority'] == 'low';
+          case 'Completed':
+            return task['status'] == 'completed';
+          default:
+            return true;
+        }
+      }).toList();
     }
 
-    return tasks
+    if (searchQuery.isEmpty) {
+      return filtered;
+    }
+
+    return filtered
         .where(
           (task) =>
               task['title'].toString().toLowerCase().contains(
@@ -66,18 +125,6 @@ class _TaskScreenState extends State<TaskScreen> {
         .toList();
   }
 
-  String _getCalendarSvg(Color color) {
-    if (color == Colors.red) {
-      return 'assets/svg/redCalendar.svg';
-    } else if (color == Colors.orange) {
-      return 'assets/svg/orangeCalendar.svg';
-    } else if (color == Colors.green) {
-      return 'assets/svg/greenCalendar.svg';
-    } else {
-      return 'assets/svg/greyCalendar.svg';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -87,7 +134,7 @@ class _TaskScreenState extends State<TaskScreen> {
         children: [
           Container(
             decoration: BoxDecoration(
-              color: Colors.orange.shade400,
+              color: appbarColor,
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(30),
                 bottomRight: Radius.circular(30),
@@ -155,7 +202,7 @@ class _TaskScreenState extends State<TaskScreen> {
                       child: SvgPicture.asset(
                         'assets/svg/filter.svg',
                         colorFilter: ColorFilter.mode(
-                          Colors.orange.shade400,
+                          appbarColor,
                           BlendMode.srcIn,
                         ),
                         width: 24,
@@ -186,13 +233,13 @@ class _TaskScreenState extends State<TaskScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: selectedFilter == filters[index]
-                            ? Colors.orange.shade400
+                            ? appbarColor
                             : Colors.white,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: selectedFilter == filters[index]
-                              ? Colors.orange.shade400
-                              : Colors.grey.shade300,
+                              ? Colors.white
+                              : appbarColor,
                         ),
                       ),
                       child: Text(
@@ -210,7 +257,6 @@ class _TaskScreenState extends State<TaskScreen> {
               ),
             ),
           ),
-          // Tasks List
           Expanded(
             child: FutureBuilder<List<Map<String, dynamic>>>(
               future: _tasksFuture,
@@ -273,91 +319,119 @@ class _TaskScreenState extends State<TaskScreen> {
                   itemCount: filteredTasks.length,
                   itemBuilder: (context, index) {
                     final task = filteredTasks[index];
+                    final taskColor = _getTaskColor(task);
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  TaskDetailsScreen(task: task),
+                      child: ClipRRect(
+                        child: Dismissible(
+                          key: ValueKey(task['id']),
+                          direction: DismissDirection.endToStart,
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 20),
+                            child: SvgPicture.asset(
+                              'assets/svg/delete.svg',
+                              width: 28,
+                              height: 28,
+                              colorFilter: ColorFilter.mode(
+                                Colors.red,
+                                BlendMode.srcIn,
+                              ),
                             ),
-                          );
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 10,
-                              ),
-                            ],
                           ),
-                          padding: const EdgeInsets.all(16),
-                          child: Row(
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: SvgPicture.asset(
-                                  _getCalendarSvg(task['color']),
-                                  width: 42,
-                                  height: 42,
-                                ),
+                          onDismissed: (direction) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('${task['title']} deleted'),
+                                duration: const Duration(seconds: 2),
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      task['title'],
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      task['description'] ?? '',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey.shade500,
-                                      ),
-                                    ),
-                                  ],
+                            );
+                          },
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      TaskDetailsScreen(task: task),
                                 ),
-                              ),
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: task['color'].withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                child: Text(
-                                  task['count'].toString(),
-                                  style: TextStyle(
-                                    color: task['color'],
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
+                              );
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
                                   ),
-                                ),
+                                ],
                               ),
-                            ],
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.1),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: SvgPicture.asset(
+                                      _getCalendarSvg(taskColor),
+                                      width: 48,
+                                      height: 48,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                task['title'],
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.black87,
+                                                ),
+                                              ),
+                                            ),
+                                            Text(
+                                              _formatDate(task['dueDate']),
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: Colors.black,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          task['description'] ?? '',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey.shade500,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -370,7 +444,7 @@ class _TaskScreenState extends State<TaskScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.orange.shade400,
+        backgroundColor: appbarColor,
         elevation: 8,
         onPressed: () {},
         child: const Icon(Icons.add, color: Colors.white, size: 28),

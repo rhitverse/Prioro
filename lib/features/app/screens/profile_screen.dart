@@ -36,7 +36,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Colors.grey.shade100,
       body: Column(
         children: [
-          // Header
           Container(
             decoration: BoxDecoration(
               color: Colors.orange.shade400,

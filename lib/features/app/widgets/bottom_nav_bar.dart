@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:prioro/colors.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -17,7 +18,7 @@ class BottomNavBar extends StatelessWidget {
       currentIndex: currentIndex,
       type: BottomNavigationBarType.fixed,
       backgroundColor: Colors.white,
-      selectedItemColor: Colors.orange.shade400,
+      selectedItemColor: appbarColor,
       unselectedItemColor: Colors.grey.shade400,
       onTap: onTap,
       items: [
@@ -25,7 +26,7 @@ class BottomNavBar extends StatelessWidget {
           icon: SvgPicture.asset(
             'assets/svg/home.svg',
             colorFilter: ColorFilter.mode(
-              currentIndex == 0 ? Colors.orange.shade400 : Colors.grey.shade400,
+              currentIndex == 0 ? appbarColor : Colors.grey.shade400,
               BlendMode.srcIn,
             ),
             width: 24,
@@ -37,7 +38,7 @@ class BottomNavBar extends StatelessWidget {
           icon: SvgPicture.asset(
             'assets/svg/task.svg',
             colorFilter: ColorFilter.mode(
-              currentIndex == 1 ? Colors.orange.shade400 : Colors.grey.shade400,
+              currentIndex == 1 ? appbarColor : Colors.grey.shade400,
               BlendMode.srcIn,
             ),
             width: 28,
@@ -49,7 +50,7 @@ class BottomNavBar extends StatelessWidget {
           icon: SvgPicture.asset(
             'assets/svg/user.svg',
             colorFilter: ColorFilter.mode(
-              currentIndex == 2 ? Colors.orange.shade400 : Colors.grey.shade400,
+              currentIndex == 2 ? appbarColor : Colors.grey.shade400,
               BlendMode.srcIn,
             ),
             width: 24,

@@ -37,8 +37,6 @@ class AuthController extends GetxController {
     super.onClose();
   }
 
-  // ---------------- VALIDATION ----------------
-
   String? validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) return 'Email is required';
     if (!GetUtils.isEmail(value.trim())) return 'Enter valid email';
@@ -62,8 +60,6 @@ class AuthController extends GetxController {
     return null;
   }
 
-  // ---------------- LOGIN ----------------
-
   Future<void> login(BuildContext context) async {
     if (!(loginFormKey.currentState?.validate() ?? false)) return;
 
@@ -81,8 +77,6 @@ class AuthController extends GetxController {
       isLoading.value = false;
     }
   }
-
-  // ---------------- SIGNUP ----------------
 
   Future<void> signup(BuildContext context) async {
     if (!(signupFormKey.currentState?.validate() ?? false)) return;
@@ -102,8 +96,6 @@ class AuthController extends GetxController {
     }
   }
 
-  // ---------------- GOOGLE ----------------
-
   Future<void> signInWithGoogle({required BuildContext context}) async {
     isGoogleLoading.value = true;
 
@@ -115,8 +107,6 @@ class AuthController extends GetxController {
       isGoogleLoading.value = false;
     }
   }
-
-  // ---------------- FORGOT ----------------
 
   Future<void> sendForgotPasswordEmail({required BuildContext context}) async {
     final email = forgotEmailController.text.trim();
