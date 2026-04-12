@@ -51,6 +51,17 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     }
   }
 
+  String _formatDueDate(String? value) {
+    if (value == null || value.isEmpty) return 'No due date';
+
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null) return value;
+
+    final day = parsed.day.toString().padLeft(2, '0');
+    final month = parsed.month.toString().padLeft(2, '0');
+    return '$day-$month-${parsed.year}';
+  }
+
   void _showDeleteConfirmation() {
     showDialog(
       context: context,
@@ -298,7 +309,9 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              widget.task['dueDate'] ?? 'No due date',
+                              _formatDueDate(
+                                widget.task['dueDate']?.toString(),
+                              ),
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,

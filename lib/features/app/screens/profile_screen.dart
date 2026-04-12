@@ -56,21 +56,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     color: Colors.white,
                   ),
                 ),
-                GestureDetector(
-                  onTap: () => _logout(context),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                    padding: const EdgeInsets.all(10),
-                    child: const Icon(
-                      Icons.logout,
-                      color: Colors.orange,
-                      size: 20,
-                    ),
-                  ),
-                ),
               ],
             ),
           ),

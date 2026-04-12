@@ -101,6 +101,17 @@ class _TaskScreenState extends State<TaskScreen> {
     }
   }
 
+  String _formatDueDate(String? value) {
+    if (value == null || value.isEmpty) return 'No date';
+
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null) return value;
+
+    final day = parsed.day.toString().padLeft(2, '0');
+    final month = parsed.month.toString().padLeft(2, '0');
+    return '$day-$month-${parsed.year}';
+  }
+
   List<Map<String, dynamic>> _filterTasks(
     List<Map<String, dynamic>> tasks,
     String searchQuery,
@@ -471,11 +482,10 @@ class _TaskScreenState extends State<TaskScreen> {
                                               ),
                                             ),
                                             Text(
-                                              task['dueDate']?.isNotEmpty ==
-                                                      true
-                                                  ? task['dueDate']
-                                                  : 'No date',
-                                              style: TextStyle(
+                                              _formatDueDate(
+                                                task['dueDate']?.toString(),
+                                              ),
+                                              style: const TextStyle(
                                                 fontSize: 10,
                                                 color: Colors.black,
                                               ),

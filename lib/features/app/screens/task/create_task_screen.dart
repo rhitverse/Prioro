@@ -15,15 +15,14 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   final _descriptionController = TextEditingController();
   final _tagsController = TextEditingController();
   final TaskController _taskController = TaskController();
+
   String _selectedPriority = 'medium';
   DateTime? _startDate;
   DateTime? _dueDate;
   int _progress = 0;
 
-  // Progress section expand/collapse state
-  bool _isProgressExpanded = false;
   bool _showTags = false;
-  bool _showCompletion = false;
+  bool _showCompletion = true;
 
   @override
   void initState() {
@@ -61,6 +60,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
         );
       },
     );
+
     if (picked != null) {
       setState(() {
         if (isStartDate) {
@@ -120,7 +120,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -170,18 +170,9 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                 const SizedBox(height: 12),
                 _buildPrioritySelector(),
                 const SizedBox(height: 28),
-                _buildDateRow(
-                  'Start Date',
-                  _startDate,
-                  () => _selectDate(true),
-                ),
-                const SizedBox(height: 16),
                 _buildDateRow('Due Date', _dueDate, () => _selectDate(false)),
                 const SizedBox(height: 28),
-
-                // ── Progress Section (expandable) ──
                 _buildProgressSection(),
-
                 const SizedBox(height: 32),
                 SizedBox(
                   width: double.infinity,
@@ -232,7 +223,6 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
 
                         Navigator.pop(context, true);
                       } catch (e) {
-                        print('Error creating task: $e');
                         ScaffoldMessenger.of(
                           context,
                         ).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -257,7 +247,6 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -266,189 +255,124 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     );
   }
 
-  // ─────────────────────────────────────────────────
-  //  NEW: Expandable Progress Section
-  // ─────────────────────────────────────────────────
   Widget _buildProgressSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header row with chevron toggle
-        GestureDetector(
-          onTap: () {
-            setState(() => _isProgressExpanded = !_isProgressExpanded);
-          },
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Progress',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              AnimatedRotation(
-                turns: _isProgressExpanded ? 0.5 : 0,
-                duration: const Duration(milliseconds: 250),
-                child: const Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: Colors.black87,
-                  size: 22,
-                ),
-              ),
-            ],
+        const Text(
+          'Progress',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
           ),
         ),
-
-        // Expanded panel: Tags + Completion toggles
-        AnimatedCrossFade(
-          duration: const Duration(milliseconds: 250),
-          crossFadeState: _isProgressExpanded
-              ? CrossFadeState.showSecond
-              : CrossFadeState.showFirst,
-          firstChild: const SizedBox.shrink(),
-          secondChild: Column(
-            children: [
-              const SizedBox(height: 12),
-
-              // ── Tags row ──
-              _buildToggleRow(
-                label: 'Tags',
-                subtitle: 'Chaoole Task', // placeholder text shown in Image 2
-                value: _showTags,
-                onChanged: (v) => setState(() => _showTags = v),
-              ),
-
-              // Tags input field (visible only when Tags toggle is ON)
-              AnimatedCrossFade(
-                duration: const Duration(milliseconds: 200),
-                crossFadeState: _showTags
-                    ? CrossFadeState.showSecond
-                    : CrossFadeState.showFirst,
-                firstChild: const SizedBox.shrink(),
-                secondChild: Padding(
-                  padding: const EdgeInsets.only(top: 8, bottom: 4),
-                  child: TextField(
-                    controller: _tagsController,
-                    decoration: InputDecoration(
-                      hintText: 'Add tags, comma separated',
-                      hintStyle: TextStyle(
-                        color: Colors.grey.shade400,
-                        fontSize: 13,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: appbarColor, width: 2),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey.shade50,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _showCompletion = true;
+                    _showTags = false;
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: _showCompletion ? appbarColor : Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: _showCompletion
+                          ? appbarColor
+                          : Colors.grey.shade300,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    'Completion',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: _showCompletion ? Colors.white : Colors.black87,
                     ),
                   ),
                 ),
               ),
-
-              const Divider(height: 1, color: Color(0xFFEEEEEE)),
-
-              // ── Completion row ──
-              _buildToggleRow(
-                label: 'Completion',
-                subtitle:
-                    'Veriee wie rettorek', // placeholder text shown in Image 2
-                value: _showCompletion,
-                onChanged: (v) => setState(() => _showCompletion = v),
-              ),
-
-              // Slider (visible only when Completion toggle is ON)
-              AnimatedCrossFade(
-                duration: const Duration(milliseconds: 200),
-                crossFadeState: _showCompletion
-                    ? CrossFadeState.showSecond
-                    : CrossFadeState.showFirst,
-                firstChild: const SizedBox.shrink(),
-                secondChild: Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: _buildProgressSlider(),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _showCompletion = false;
+                    _showTags = true;
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: _showTags ? appbarColor : Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: _showTags ? appbarColor : Colors.grey.shade300,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    'Tags',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: _showTags ? Colors.white : Colors.black87,
+                    ),
+                  ),
                 ),
               ),
-            ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        AnimatedCrossFade(
+          duration: const Duration(milliseconds: 250),
+          crossFadeState: _showCompletion
+              ? CrossFadeState.showFirst
+              : CrossFadeState.showSecond,
+          firstChild: _buildProgressSlider(),
+          secondChild: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: TextField(
+              controller: _tagsController,
+              decoration: InputDecoration(
+                hintText: 'Add tags',
+                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: appbarColor, width: 2),
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
+            ),
           ),
         ),
       ],
     );
   }
 
-  /// A row with a label, subtitle, and an orange circular toggle button
-  Widget _buildToggleRow({
-    required String label,
-    required String subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
-                ),
-              ],
-            ),
-          ),
-          GestureDetector(
-            onTap: () => onChanged(!value),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: value ? appbarColor : Colors.transparent,
-                border: Border.all(
-                  color: value ? appbarColor : Colors.grey.shade400,
-                  width: 2,
-                ),
-              ),
-              child: value
-                  ? const Icon(Icons.check, color: Colors.white, size: 16)
-                  : const SizedBox.shrink(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─────────────────────────────────────────────────
-  //  Existing helpers (unchanged)
-  // ─────────────────────────────────────────────────
   Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
