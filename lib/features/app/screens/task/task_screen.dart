@@ -3,8 +3,9 @@ import 'dart:ui';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:prioro/colors.dart';
 import 'package:prioro/features/app/widgets/bottom_nav_bar.dart';
-import 'package:prioro/features/app/data/info.dart';
+import 'package:prioro/features/app/screens/task/controller/task_controller.dart';
 import 'package:prioro/features/app/screens/task/task_details_screen.dart';
+import 'package:prioro/features/app/screens/task/create_task_screen.dart';
 
 class TaskScreen extends StatefulWidget {
   final int currentIndex;
@@ -24,6 +25,7 @@ class _TaskScreenState extends State<TaskScreen> {
   String selectedFilter = 'All';
   late Future<List<Map<String, dynamic>>> _tasksFuture;
   late TextEditingController _searchController;
+  late final TaskController _taskController;
 
   final List<String> filters = [
     'All',
@@ -36,7 +38,8 @@ class _TaskScreenState extends State<TaskScreen> {
   @override
   void initState() {
     super.initState();
-    _tasksFuture = TaskInfo.loadTasks();
+    _taskController = TaskController();
+    _tasksFuture = _taskController.loadTasks();
     _searchController = TextEditingController();
   }
 
@@ -47,40 +50,54 @@ class _TaskScreenState extends State<TaskScreen> {
   }
 
   bool _isOverdue(Map<String, dynamic> task) {
-    final dueDate = DateTime.tryParse(task['dueDate'] ?? '');
-    final status = task['status'] ?? '';
-    if (dueDate == null || status == 'completed') return false;
-    return dueDate.isBefore(DateTime.now());
+    try {
+      final dueDateStr = task['dueDate']?.toString() ?? '';
+      final status = task['status']?.toString() ?? '';
+      if (dueDateStr.isEmpty || status == 'completed') return false;
+      final dueDate = DateTime.tryParse(dueDateStr);
+      if (dueDate == null) return false;
+      return dueDate.isBefore(DateTime.now());
+    } catch (e) {
+      print('Error in _isOverdue: $e');
+      return false;
+    }
   }
 
   Color _getTaskColor(Map<String, dynamic> task) {
-    if (_isOverdue(task)) return Colors.red;
-    switch (task['status']) {
-      case 'completed':
-        return Colors.green;
-      case 'blocked':
-        return Colors.red;
+    try {
+      if (_isOverdue(task)) return Colors.red;
+      final status = task['status']?.toString().toLowerCase() ?? '';
+      switch (status) {
+        case 'completed':
+          return Colors.green;
+        case 'blocked':
+          return Colors.red;
+      }
+      final priority = task['priority']?.toString().toLowerCase() ?? '';
+      switch (priority) {
+        case 'high':
+          return Colors.red;
+        case 'medium':
+          return Colors.orange;
+        case 'low':
+          return Colors.green;
+      }
+      return Colors.grey;
+    } catch (e) {
+      print('Error in _getTaskColor: $e');
+      return Colors.grey;
     }
-    switch (task['priority']) {
-      case 'high':
-        return Colors.red;
-      case 'medium':
-        return Colors.orange;
-    }
-    return Colors.grey;
   }
 
-  String _formatDate(String? dateString) {
-    if (dateString == null || dateString.isEmpty) return 'No date';
-    try {
-      final date = DateTime.parse(dateString);
-      final day = date.day;
-      final month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.month - 1];
-      final year = date.year;
-      return '$day $month \'${year.toString().substring(2)}';
-    } catch (e) {
-      return dateString;
+  String _getCalendarSvg(Color color) {
+    if (color == Colors.red) {
+      return 'assets/svg/redCalendar.svg';
+    } else if (color == Colors.orange) {
+      return 'assets/svg/orangeCalendar.svg';
+    } else if (color == Colors.green) {
+      return 'assets/svg/greenCalendar.svg';
+    } else {
+      return 'assets/svg/greyCalendar.svg';
     }
   }
 
@@ -88,41 +105,52 @@ class _TaskScreenState extends State<TaskScreen> {
     List<Map<String, dynamic>> tasks,
     String searchQuery,
   ) {
-    var filtered = tasks;
+    try {
+      var filtered = tasks;
 
-    if (selectedFilter != 'All') {
-      filtered = filtered.where((task) {
-        switch (selectedFilter) {
-          case 'High priority':
-            return task['priority'] == 'high' ||
-                _getTaskColor(task) == Colors.red;
-          case 'Medium':
-            return task['priority'] == 'medium';
-          case 'Low':
-            return task['priority'] == 'low';
-          case 'Completed':
-            return task['status'] == 'completed';
-          default:
-            return true;
+      if (selectedFilter != 'All') {
+        filtered = filtered.where((task) {
+          try {
+            switch (selectedFilter) {
+              case 'High priority':
+                return (task['priority']?.toString().toLowerCase() == 'high') ||
+                    _getTaskColor(task) == Colors.red;
+              case 'Medium':
+                return task['priority']?.toString().toLowerCase() == 'medium';
+              case 'Low':
+                return task['priority']?.toString().toLowerCase() == 'low';
+              case 'Completed':
+                return task['status']?.toString().toLowerCase() == 'completed';
+              default:
+                return true;
+            }
+          } catch (e) {
+            print('Error filtering task: $e');
+            return false;
+          }
+        }).toList();
+      }
+
+      if (searchQuery.isEmpty) {
+        return filtered;
+      }
+
+      return filtered.where((task) {
+        try {
+          final title = task['title']?.toString().toLowerCase() ?? '';
+          final description =
+              task['description']?.toString().toLowerCase() ?? '';
+          return title.contains(searchQuery.toLowerCase()) ||
+              description.contains(searchQuery.toLowerCase());
+        } catch (e) {
+          print('Error in search: $e');
+          return false;
         }
       }).toList();
+    } catch (e) {
+      print('Error in _filterTasks: $e');
+      return [];
     }
-
-    if (searchQuery.isEmpty) {
-      return filtered;
-    }
-
-    return filtered
-        .where(
-          (task) =>
-              task['title'].toString().toLowerCase().contains(
-                searchQuery.toLowerCase(),
-              ) ||
-              task['description'].toString().toLowerCase().contains(
-                searchQuery.toLowerCase(),
-              ),
-        )
-        .toList();
   }
 
   @override
@@ -273,7 +301,7 @@ class _TaskScreenState extends State<TaskScreen> {
                         ElevatedButton(
                           onPressed: () {
                             setState(() {
-                              _tasksFuture = TaskInfo.loadTasks();
+                              _tasksFuture = _taskController.loadTasks();
                             });
                           },
                           child: const Text('Retry'),
@@ -324,7 +352,9 @@ class _TaskScreenState extends State<TaskScreen> {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: ClipRRect(
                         child: Dismissible(
-                          key: ValueKey(task['id']),
+                          key: ValueKey(
+                            task['id'] ?? '${task['title']}_$index',
+                          ),
                           direction: DismissDirection.endToStart,
                           background: Container(
                             alignment: Alignment.centerRight,
@@ -339,23 +369,56 @@ class _TaskScreenState extends State<TaskScreen> {
                               ),
                             ),
                           ),
-                          onDismissed: (direction) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('${task['title']} deleted'),
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
+                          confirmDismiss: (direction) async {
+                            final taskId = task['id']?.toString() ?? '';
+                            if (taskId.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Task id missing, cannot delete',
+                                  ),
+                                ),
+                              );
+                              return false;
+                            }
+
+                            try {
+                              await _taskController.deleteTask(taskId);
+                              if (!mounted) return false;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('${task['title']} deleted'),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                              setState(() {
+                                _tasksFuture = _taskController.loadTasks();
+                              });
+                              return true;
+                            } catch (e) {
+                              if (!mounted) return false;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Delete failed: $e')),
+                              );
+                              return false;
+                            }
                           },
                           child: GestureDetector(
-                            onTap: () {
-                              Navigator.push(
+                            onTap: () async {
+                              final result = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
                                       TaskDetailsScreen(task: task),
                                 ),
                               );
+
+                              // Refresh if needed
+                              if (result == true) {
+                                setState(() {
+                                  _tasksFuture = _taskController.loadTasks();
+                                });
+                              }
                             },
                             child: Container(
                               decoration: BoxDecoration(
@@ -399,7 +462,7 @@ class _TaskScreenState extends State<TaskScreen> {
                                           children: [
                                             Expanded(
                                               child: Text(
-                                                task['title'],
+                                                task['title'] ?? 'No title',
                                                 style: const TextStyle(
                                                   fontSize: 13,
                                                   fontWeight: FontWeight.w600,
@@ -408,7 +471,10 @@ class _TaskScreenState extends State<TaskScreen> {
                                               ),
                                             ),
                                             Text(
-                                              _formatDate(task['dueDate']),
+                                              task['dueDate']?.isNotEmpty ==
+                                                      true
+                                                  ? task['dueDate']
+                                                  : 'No date',
                                               style: TextStyle(
                                                 fontSize: 10,
                                                 color: Colors.black,
@@ -418,7 +484,10 @@ class _TaskScreenState extends State<TaskScreen> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          task['description'] ?? '',
+                                          task['description']?.isNotEmpty ==
+                                                  true
+                                              ? task['description']
+                                              : 'No description',
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: Colors.grey.shade500,
@@ -446,7 +515,19 @@ class _TaskScreenState extends State<TaskScreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: appbarColor,
         elevation: 8,
-        onPressed: () {},
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CreateTaskScreen()),
+          );
+
+          // Refresh tasks if a new task was created
+          if (result == true) {
+            setState(() {
+              _tasksFuture = _taskController.loadTasks();
+            });
+          }
+        },
         child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
       bottomNavigationBar: BottomNavBar(

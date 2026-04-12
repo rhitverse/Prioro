@@ -12,7 +12,20 @@
           "package_name": "com.example.prioro"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "209652002579-5g898l6opgt1k27l1i1qdd24odfk0c7t.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.prioro",
+            "certificate_hash": "bdf62788d977a5cf57a8f74655d8893f9307f587"
+          }
+        },
+        {
+          "client_id": "209652002579-7uarbs2aqt7p99phiql2gekgmq72dhts.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyC9u0cPkyzHGRSw43nQJAqQuApzpfQBW2A"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "209652002579-7uarbs2aqt7p99phiql2gekgmq72dhts.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "209652002579-lashqdj59fn5clgpr3qbdk5q20rg7sve.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.prioro"
+              }
+            }
+          ]
         }
       }
     }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:prioro/colors.dart';
+import 'package:prioro/features/app/screens/task/controller/task_controller.dart';
 
 class TaskDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> task;
@@ -12,6 +13,8 @@ class TaskDetailsScreen extends StatefulWidget {
 }
 
 class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
+  final TaskController _taskController = TaskController();
+
   bool _isOverdue(Map<String, dynamic> task) {
     final dueDate = DateTime.tryParse(task['dueDate'] ?? '');
     final status = task['status'] ?? '';
@@ -60,9 +63,30 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
+              final taskId = widget.task['id']?.toString() ?? '';
               Navigator.pop(context);
-              Navigator.pop(context);
+
+              if (taskId.isEmpty) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Task id missing, cannot delete'),
+                  ),
+                );
+                return;
+              }
+
+              try {
+                await _taskController.deleteTask(taskId);
+                if (!mounted) return;
+                Navigator.pop(context, true);
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+              }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
