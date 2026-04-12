@@ -1,11 +1,16 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:get/get.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_navigation/src/extension_navigation.dart';
+import 'package:get/get_rx/src/rx_types/rx_types.dart';
+import 'package:get/get_state_manager/src/simple/get_controllers.dart';
+import 'package:get/get_utils/src/get_utils/get_utils.dart';
 import 'package:prioro/auth/repository/auth_providers.dart';
 import 'package:prioro/auth/repository/auth_repository.dart';
 
 class AuthController extends GetxController {
   final AuthRepository _authRepository;
+
   AuthController({AuthRepository? authRepository})
     : _authRepository = authRepository ?? authRepositoryInstance;
 
@@ -13,69 +18,123 @@ class AuthController extends GetxController {
   final RxBool isGoogleLoading = false.obs;
   final RxBool obscurePassword = true.obs;
 
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-  final TextEditingController forgotEmailController = TextEditingController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+  final nameController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
+  final forgotEmailController = TextEditingController();
 
-  final GlobalKey<FormState> loginFormKey = GlobalKey<FormState>();
+  final loginFormKey = GlobalKey<FormState>();
+  final signupFormKey = GlobalKey<FormState>();
 
   @override
   void onClose() {
     emailController.dispose();
     passwordController.dispose();
+    nameController.dispose();
+    confirmPasswordController.dispose();
     forgotEmailController.dispose();
     super.onClose();
   }
 
+  // ---------------- VALIDATION ----------------
+
   String? validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) return 'Email is required';
-    if (!GetUtils.isEmail(value.trim())) return 'Enter a valid email';
+    if (!GetUtils.isEmail(value.trim())) return 'Enter valid email';
     return null;
   }
 
   String? validatePassword(String? value) {
-    if (value == null || value.isEmpty) return 'Password is required';
-    if (value.length < 6) return 'Password must be at least 6 characters';
+    if (value == null || value.isEmpty) return 'Password required';
+    if (value.length < 6) return 'Min 6 characters';
     return null;
   }
 
-  Future<void> login() async {
-    Get.snackbar(
-      'Google Sign-In Only',
-      'Please continue using Google login.',
-      snackPosition: SnackPosition.BOTTOM,
-      margin: const EdgeInsets.all(16),
-    );
+  String? validateName(String? value) {
+    if (value == null || value.isEmpty) return 'Name required';
+    return null;
   }
 
-  Future<void> sendForgotPasswordEmail() async {
-    Get.snackbar(
-      'Unavailable',
-      'Password reset is disabled in Google-only auth mode.',
-      snackPosition: SnackPosition.BOTTOM,
-      margin: const EdgeInsets.all(16),
-    );
+  String? validateConfirmPassword(String? value) {
+    if (value == null || value.isEmpty) return 'Confirm password required';
+    if (value != passwordController.text) return 'Passwords do not match';
+    return null;
   }
+
+  // ---------------- LOGIN ----------------
+
+  Future<void> login(BuildContext context) async {
+    if (!(loginFormKey.currentState?.validate() ?? false)) return;
+
+    isLoading.value = true;
+
+    try {
+      await _authRepository.signInWithEmail(
+        email: emailController.text,
+        password: passwordController.text,
+        context: context,
+      );
+    } on FirebaseAuthException catch (e) {
+      Get.snackbar("Login Failed", e.message ?? "Error");
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // ---------------- SIGNUP ----------------
+
+  Future<void> signup(BuildContext context) async {
+    if (!(signupFormKey.currentState?.validate() ?? false)) return;
+
+    isLoading.value = true;
+
+    try {
+      await _authRepository.signUpWithEmail(
+        email: emailController.text,
+        password: passwordController.text,
+        context: context,
+      );
+    } on FirebaseAuthException catch (e) {
+      Get.snackbar("Signup Failed", e.message ?? "Error");
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // ---------------- GOOGLE ----------------
 
   Future<void> signInWithGoogle({required BuildContext context}) async {
     isGoogleLoading.value = true;
+
     try {
       await _authRepository.signInWithGoogle(context: context);
-    } on FirebaseAuthException catch (e) {
-      if (!context.mounted) return;
-      final message = e.message ?? 'Google sign-in failed. Please try again.';
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
-    } catch (_) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Google sign-in failed. Please try again.'),
-        ),
-      );
+    } catch (e) {
+      Get.snackbar("Error", "Google sign-in failed");
     } finally {
       isGoogleLoading.value = false;
+    }
+  }
+
+  // ---------------- FORGOT ----------------
+
+  Future<void> sendForgotPasswordEmail({required BuildContext context}) async {
+    final email = forgotEmailController.text.trim();
+
+    if (email.isEmpty || !GetUtils.isEmail(email)) {
+      Get.snackbar("Error", "Enter valid email");
+      return;
+    }
+
+    Navigator.pop(context);
+
+    isLoading.value = true;
+
+    try {
+      await _authRepository.sendPasswordResetEmail(email: email);
+      Get.snackbar("Success", "Reset link sent");
+    } finally {
+      isLoading.value = false;
     }
   }
 }

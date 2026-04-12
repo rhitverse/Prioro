@@ -13,6 +13,42 @@ class AuthRepository {
   }) : _auth = auth,
        _googleSignIn = googleSignIn;
 
+  Future<void> signInWithEmail({
+    required String email,
+    required String password,
+    required BuildContext context,
+  }) async {
+    await _auth.signInWithEmailAndPassword(
+      email: email.trim(),
+      password: password,
+    );
+    if (!context.mounted) return;
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
+  }
+
+  Future<void> signUpWithEmail({
+    required String email,
+    required String password,
+    required BuildContext context,
+  }) async {
+    await _auth.createUserWithEmailAndPassword(
+      email: email.trim(),
+      password: password,
+    );
+
+    if (!context.mounted) return;
+
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
+  }
+
+  Future<void> sendPasswordResetEmail({required String email}) async {
+    await _auth.sendPasswordResetEmail(email: email.trim());
+  }
+
   Future<void> signInWithGoogle({required BuildContext context}) async {
     final googleUser = await _googleSignIn.signIn();
     if (googleUser == null) return;

@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:prioro/auth/controller/auth_controller.dart';
 import 'package:prioro/colors.dart';
+import 'package:prioro/features/app/screens/Login/signup_screen.dart';
 import 'package:prioro/features/app/screens/Login/widget/input_field.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -10,64 +11,91 @@ class LoginScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AuthController controller = Get.put(AuthController());
-
+    final controller = Get.find<AuthController>();
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: backroundColor,
-      body: SafeArea(
-        child: SingleChildScrollView(
+      body: Form(
+        key: controller.loginFormKey,
+        child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Form(
-            key: controller.loginFormKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 32),
-                Center(
-                  child: Image.asset(
-                    'assets/images/applogo.png',
-                    height: 100,
-                    width: 100,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 62),
+              Center(
+                child: Image.asset(
+                  'assets/images/applogo.png',
+                  height: 100,
+                  width: 100,
+                ),
+              ),
+              const Center(
+                child: Text(
+                  'Welcome Back!',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
                   ),
                 ),
-                const Center(
-                  child: Text(
-                    'Welcome Back!',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
+              ),
+
+              const SizedBox(height: 35),
+
+              const Text(
+                'Sign In',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              Stack(
+                alignment: Alignment.centerLeft,
+                children: [
+                  InputField(
+                    hint: 'Enter your email',
+                    hasSvgPrefix: true,
+                    controller: controller.emailController,
+                    validator: controller.validateEmail,
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16),
+                    child: SvgPicture.asset(
+                      'assets/svg/email.svg',
+                      width: 26,
+                      height: 26,
+                      colorFilter: const ColorFilter.mode(
+                        Colors.black,
+                        BlendMode.srcIn,
+                      ),
                     ),
                   ),
-                ),
+                ],
+              ),
 
-                const SizedBox(height: 35),
+              const SizedBox(height: 20),
 
-                const Text(
-                  'Sign In',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                Stack(
+              Obx(
+                () => Stack(
                   alignment: Alignment.centerLeft,
                   children: [
                     InputField(
-                      hint: 'Enter your email',
+                      hint: 'Enter your password',
+                      obscure: controller.obscurePassword.value,
                       hasSvgPrefix: true,
-                      controller: controller.emailController,
-                      validator: controller.validateEmail,
-                      keyboardType: TextInputType.emailAddress,
+                      controller: controller.passwordController,
+                      validator: controller.validatePassword,
                     ),
                     Padding(
                       padding: const EdgeInsets.only(left: 16),
                       child: SvgPicture.asset(
-                        'assets/svg/email.svg',
+                        'assets/svg/lock.svg',
                         width: 26,
                         height: 26,
                         colorFilter: const ColorFilter.mode(
@@ -78,187 +106,159 @@ class LoginScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
 
-                const SizedBox(height: 20),
+              const SizedBox(height: 8),
 
-                Obx(
-                  () => Stack(
-                    alignment: Alignment.centerLeft,
-                    children: [
-                      InputField(
-                        hint: 'Enter your password',
-                        obscure: controller.obscurePassword.value,
-                        hasSvgPrefix: true,
-                        controller: controller.passwordController,
-                        validator: controller.validatePassword,
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 16),
-                        child: SvgPicture.asset(
-                          'assets/svg/lock.svg',
-                          width: 26,
-                          height: 26,
-                          colorFilter: const ColorFilter.mode(
-                            Colors.black,
-                            BlendMode.srcIn,
-                          ),
-                        ),
-                      ),
-                    ],
+              Align(
+                alignment: Alignment.centerRight,
+                child: GestureDetector(
+                  onTap: () => _showForgotPasswordSheet(context, controller),
+                  child: const Text(
+                    'Forgot password?',
+                    style: TextStyle(color: Colors.black, fontSize: 13),
                   ),
                 ),
+              ),
 
-                const SizedBox(height: 8),
+              const SizedBox(height: 28),
 
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: GestureDetector(
-                    onTap: () => _showForgotPasswordSheet(context, controller),
-                    child: const Text(
-                      'Forgot your password?',
-                      style: TextStyle(color: Colors.black54, fontSize: 13),
+              Obx(
+                () => SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton(
+                    onPressed: controller.isLoading.value
+                        ? null
+                        : () => controller.login(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: Colors.orange.shade300,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      elevation: 0,
                     ),
-                  ),
-                ),
-
-                const SizedBox(height: 28),
-
-                Obx(
-                  () => SizedBox(
-                    width: double.infinity,
-                    height: 55,
-                    child: ElevatedButton(
-                      onPressed: controller.isLoading.value
-                          ? null
-                          : controller.login,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: Colors.orange.shade300,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: controller.isLoading.value
-                          ? const SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2.5,
-                              ),
-                            )
-                          : const Text(
-                              'Sign in',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
+                    child: controller.isLoading.value
+                        ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
                             ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 28),
-
-                Row(
-                  children: const [
-                    Expanded(
-                      child: Divider(color: Colors.grey, thickness: 0.5),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 12),
-                      child: Text(
-                        'or sign with',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Divider(color: Colors.grey, thickness: 0.5),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 18),
-
-                Obx(
-                  () => SizedBox(
-                    width: double.infinity,
-                    height: 55,
-                    child: ElevatedButton(
-                      onPressed: controller.isGoogleLoading.value
-                          ? null
-                          : () => controller.signInWithGoogle(context: context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(width: 1, color: Colors.grey),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: controller.isGoogleLoading.value
-                          ? const SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(
-                                color: Colors.orange,
-                                strokeWidth: 2.5,
-                              ),
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Image.asset(
-                                  'assets/images/google.png',
-                                  width: 32,
-                                  height: 32,
-                                ),
-                                const SizedBox(width: 10),
-                                const Text(
-                                  'Continue with Google',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 50),
-
-                Center(
-                  child: GestureDetector(
-                    onTap: () {},
-                    child: RichText(
-                      text: const TextSpan(
-                        text: "Don't have an account? ",
-                        style: TextStyle(color: Colors.black54, fontSize: 14),
-                        children: [
-                          TextSpan(
-                            text: 'Sign Up',
+                          )
+                        : const Text(
+                            'Sign in',
                             style: TextStyle(
-                              color: Colors.orange,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                        ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 28),
+
+              Row(
+                children: const [
+                  Expanded(child: Divider(color: Colors.grey, thickness: 0.5)),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      'or sign with',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
+                  Expanded(child: Divider(color: Colors.grey, thickness: 0.5)),
+                ],
+              ),
+
+              const SizedBox(height: 18),
+
+              Obx(
+                () => SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton(
+                    onPressed: controller.isGoogleLoading.value
+                        ? null
+                        : () => controller.signInWithGoogle(context: context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(width: 1, color: Colors.grey),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: controller.isGoogleLoading.value
+                        ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(
+                              color: Colors.orange,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Image.asset(
+                                'assets/images/google.png',
+                                width: 32,
+                                height: 32,
+                              ),
+                              const SizedBox(width: 10),
+                              const Text(
+                                'Continue with Google',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
                 ),
-              ],
-            ),
+              ),
+
+              const SizedBox(height: 50),
+
+              Center(
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SignupScreen()),
+                    );
+                  },
+                  child: RichText(
+                    text: const TextSpan(
+                      text: "Don't have an account? ",
+                      style: TextStyle(color: Colors.black54, fontSize: 14),
+                      children: [
+                        TextSpan(
+                          text: 'Sign Up',
+                          style: TextStyle(
+                            color: Colors.orange,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -320,7 +320,9 @@ class LoginScreen extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: controller.isLoading.value
                       ? null
-                      : controller.sendForgotPasswordEmail,
+                      : () => controller.sendForgotPasswordEmail(
+                          context: context,
+                        ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange,
                     foregroundColor: Colors.white,
