@@ -12,6 +12,12 @@ class SignupScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.find<AuthController>();
 
+    // Clear all signup fields when screen is opened
+    controller.nameController.clear();
+    controller.emailController.clear();
+    controller.passwordController.clear();
+    controller.confirmPasswordController.clear();
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: backroundColor,

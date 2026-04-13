@@ -88,6 +88,7 @@ class AuthController extends GetxController {
         email: emailController.text,
         password: passwordController.text,
         context: context,
+        name: nameController.text,
       );
     } on FirebaseAuthException catch (e) {
       Get.snackbar("Signup Failed", e.message ?? "Error");
@@ -116,13 +117,30 @@ class AuthController extends GetxController {
       return;
     }
 
-    Navigator.pop(context);
-
     isLoading.value = true;
 
     try {
       await _authRepository.sendPasswordResetEmail(email: email);
-      Get.snackbar("Success", "Reset link sent");
+      if (context.mounted) {
+        Navigator.pop(context);
+      }
+      Get.snackbar("Success", "Reset link sent to $email");
+    } on FirebaseAuthException catch (e) {
+      final code = e.code.toLowerCase();
+      final message = switch (code) {
+        'invalid-email' => 'Enter a valid email address',
+        'missing-android-pkg-name' =>
+          'Reset config missing for Android package',
+        'missing-continue-uri' => 'Reset link configuration missing',
+        'unauthorized-continue-uri' =>
+          'Reset link domain is not authorized in Firebase',
+        'user-not-found' => 'No account found with this email',
+        'too-many-requests' => 'Too many attempts. Try again after some time',
+        _ => e.message ?? 'Failed to send reset link',
+      };
+      Get.snackbar("Reset Failed", message);
+    } catch (_) {
+      Get.snackbar("Reset Failed", "Failed to send reset link");
     } finally {
       isLoading.value = false;
     }

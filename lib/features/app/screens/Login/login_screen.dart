@@ -269,7 +269,8 @@ class LoginScreen extends StatelessWidget {
     BuildContext context,
     AuthController controller,
   ) {
-    controller.forgotEmailController.clear();
+    final loginEmail = controller.emailController.text.trim();
+    controller.forgotEmailController.text = loginEmail;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

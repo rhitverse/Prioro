@@ -4,14 +4,11 @@ class TaskDetailsBottomBar extends StatelessWidget {
   final VoidCallback onMarkCompleted;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  final bool isOverdueTask;
-
   const TaskDetailsBottomBar({
     super.key,
     required this.onMarkCompleted,
     required this.onEdit,
     required this.onDelete,
-    this.isOverdueTask = false,
   });
 
   @override
@@ -38,22 +35,18 @@ class TaskDetailsBottomBar extends StatelessWidget {
                 height: 54,
                 width: 190,
                 child: ElevatedButton(
-                  onPressed: isOverdueTask ? null : onMarkCompleted,
+                  onPressed: onMarkCompleted,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isOverdueTask
-                        ? const Color(0xFFE4574F)
-                        : const Color(0xFFFF6A1F),
-                    disabledBackgroundColor: Colors.red,
+                    backgroundColor: const Color(0xFFFF6A1F),
                     foregroundColor: Colors.white,
-                    disabledForegroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: const StadiumBorder(),
                     elevation: 0,
                   ),
-                  child: Text(
-                    isOverdueTask ? 'Overdue' : 'Mark as Completed',
+                  child: const Text(
+                    'Mark as Completed',
                     style: TextStyle(
-                      fontSize: isOverdueTask ? 16 : 14,
+                      fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
                     ),

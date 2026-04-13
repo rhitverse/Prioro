@@ -351,11 +351,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                               padding:
                                                   const EdgeInsets.symmetric(
                                                     horizontal: 6,
-                                                    vertical: 4,
                                                   ),
                                               decoration: BoxDecoration(
                                                 borderRadius:
-                                                    BorderRadius.circular(5),
+                                                    BorderRadius.circular(10),
                                                 color: const Color(0xffDDDDDD),
                                               ),
                                               child: Text(

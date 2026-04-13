@@ -19,25 +19,6 @@ class TaskDetailsScreen extends StatefulWidget {
 class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
   final TaskController _taskController = TaskController();
 
-  bool _isCompletedTask(Map<String, dynamic> task, int? progressPercent) {
-    final status = task['status']?.toString().toLowerCase() ?? '';
-    final isCompleted = task['isCompleted'] == true;
-    final progressDone = (progressPercent ?? 0) >= 100;
-    return status == 'completed' || isCompleted || progressDone;
-  }
-
-  bool _isOverdueTask(Map<String, dynamic> task, int? progressPercent) {
-    final dueDate = DateTime.tryParse(task['dueDate']?.toString() ?? '');
-    if (dueDate == null || _isCompletedTask(task, progressPercent)) {
-      return false;
-    }
-
-    final dueDateOnly = DateTime(dueDate.year, dueDate.month, dueDate.day);
-    final now = DateTime.now();
-    final todayOnly = DateTime(now.year, now.month, now.day);
-    return dueDateOnly.isBefore(todayOnly);
-  }
-
   Future<void> _handleMarkCompleted() async {
     final taskId = widget.task['id']?.toString() ?? '';
     if (taskId.isEmpty) {
@@ -192,7 +173,6 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     final dueDateTime = DateTime.tryParse(
       widget.task['dueDate']?.toString() ?? '',
     );
-    final isOverdueTask = _isOverdueTask(widget.task, progressPercent);
     final statusLabel = progressPercent != null && progressPercent >= 100
         ? 'Completed'
         : 'In Progress';
@@ -300,7 +280,6 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         onEdit: _handleEditTask,
         onDelete: _showDeleteConfirmation,
         onMarkCompleted: _handleMarkCompleted,
-        isOverdueTask: isOverdueTask,
       ),
     );
   }

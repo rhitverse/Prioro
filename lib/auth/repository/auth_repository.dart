@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:prioro/features/app/screens/home_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthRepository {
   final FirebaseAuth _auth;
@@ -32,11 +33,31 @@ class AuthRepository {
     required String email,
     required String password,
     required BuildContext context,
+    String? name,
   }) async {
-    await _auth.createUserWithEmailAndPassword(
+    final userCredential = await _auth.createUserWithEmailAndPassword(
       email: email.trim(),
       password: password,
     );
+
+    // Set displayName
+    if (name != null && name.isNotEmpty) {
+      await userCredential.user?.updateDisplayName(name);
+    }
+
+    // Save user to Firestore
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .set({
+            'name': name ?? '',
+            'email': email.trim(),
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+    } catch (_) {
+      // Firestore not available, skip
+    }
 
     if (!context.mounted) return;
 
