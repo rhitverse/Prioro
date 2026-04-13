@@ -4,12 +4,14 @@ class TaskDetailsBottomBar extends StatelessWidget {
   final VoidCallback onMarkCompleted;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final bool isOverdueTask;
 
   const TaskDetailsBottomBar({
     super.key,
     required this.onMarkCompleted,
     required this.onEdit,
     required this.onDelete,
+    this.isOverdueTask = false,
   });
 
   @override
@@ -22,6 +24,13 @@ class TaskDetailsBottomBar extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(999),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Row(
             children: [
@@ -29,17 +38,25 @@ class TaskDetailsBottomBar extends StatelessWidget {
                 height: 54,
                 width: 190,
                 child: ElevatedButton(
-                  onPressed: onMarkCompleted,
+                  onPressed: isOverdueTask ? null : onMarkCompleted,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF6A1F),
+                    backgroundColor: isOverdueTask
+                        ? const Color(0xFFE4574F)
+                        : const Color(0xFFFF6A1F),
+                    disabledBackgroundColor: Colors.red,
                     foregroundColor: Colors.white,
+                    disabledForegroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: const StadiumBorder(),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'Mark as Completed',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                  child: Text(
+                    isOverdueTask ? 'Overdue' : 'Mark as Completed',
+                    style: TextStyle(
+                      fontSize: isOverdueTask ? 16 : 14,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),

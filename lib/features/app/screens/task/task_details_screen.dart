@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:prioro/features/app/screens/task/controller/task_controller.dart';
+import 'package:prioro/features/app/screens/task/edit_task_screen.dart';
 import 'package:prioro/features/app/screens/task/widget/task_description_card.dart';
 import 'package:prioro/features/app/screens/task/widget/task_details_bottom_bar.dart';
 import 'package:prioro/features/app/screens/task/widget/task_overview_cards.dart';
@@ -17,6 +18,67 @@ class TaskDetailsScreen extends StatefulWidget {
 
 class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
   final TaskController _taskController = TaskController();
+
+  bool _isCompletedTask(Map<String, dynamic> task, int? progressPercent) {
+    final status = task['status']?.toString().toLowerCase() ?? '';
+    final isCompleted = task['isCompleted'] == true;
+    final progressDone = (progressPercent ?? 0) >= 100;
+    return status == 'completed' || isCompleted || progressDone;
+  }
+
+  bool _isOverdueTask(Map<String, dynamic> task, int? progressPercent) {
+    final dueDate = DateTime.tryParse(task['dueDate']?.toString() ?? '');
+    if (dueDate == null || _isCompletedTask(task, progressPercent)) {
+      return false;
+    }
+
+    final dueDateOnly = DateTime(dueDate.year, dueDate.month, dueDate.day);
+    final now = DateTime.now();
+    final todayOnly = DateTime(now.year, now.month, now.day);
+    return dueDateOnly.isBefore(todayOnly);
+  }
+
+  Future<void> _handleMarkCompleted() async {
+    final taskId = widget.task['id']?.toString() ?? '';
+    if (taskId.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Task id missing, cannot update')),
+      );
+      return;
+    }
+
+    try {
+      await _taskController.updateTask(taskId, {
+        'status': 'completed',
+        'isCompleted': true,
+        'progress': 100,
+        'endDate': DateTime.now().toIso8601String(),
+      });
+
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Update failed: $e')));
+    }
+  }
+
+  Future<void> _handleEditTask() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditTaskScreen(task: widget.task),
+      ),
+    );
+
+    if (!mounted) return;
+    if (result == true) {
+      Navigator.pop(context, true);
+    }
+  }
 
   String _formatDate(String? value) {
     if (value == null || value.isEmpty) return 'No date';
@@ -130,6 +192,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     final dueDateTime = DateTime.tryParse(
       widget.task['dueDate']?.toString() ?? '',
     );
+    final isOverdueTask = _isOverdueTask(widget.task, progressPercent);
     final statusLabel = progressPercent != null && progressPercent >= 100
         ? 'Completed'
         : 'In Progress';
@@ -234,9 +297,10 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         ],
       ),
       bottomNavigationBar: TaskDetailsBottomBar(
-        onEdit: () {},
+        onEdit: _handleEditTask,
         onDelete: _showDeleteConfirmation,
-        onMarkCompleted: () {},
+        onMarkCompleted: _handleMarkCompleted,
+        isOverdueTask: isOverdueTask,
       ),
     );
   }

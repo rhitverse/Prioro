@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:prioro/colors.dart';
-import 'package:prioro/features/app/screens/task/controller/task_controller.dart';
 import 'package:prioro/features/app/screens/Login/widget/info_popup.dart';
+import 'package:prioro/features/app/screens/task/controller/task_controller.dart';
 import 'package:prioro/features/app/screens/task/widget/task_form_widgets.dart';
 import 'package:prioro/features/app/widgets/helpfulWidget/custom_messengeer.dart';
 
-class CreateTaskScreen extends StatefulWidget {
-  const CreateTaskScreen({super.key});
+class EditTaskScreen extends StatefulWidget {
+  final Map<String, dynamic> task;
+
+  const EditTaskScreen({super.key, required this.task});
 
   @override
-  State<CreateTaskScreen> createState() => _CreateTaskScreenState();
+  State<EditTaskScreen> createState() => _EditTaskScreenState();
 }
 
-class _CreateTaskScreenState extends State<CreateTaskScreen> {
+class _EditTaskScreenState extends State<EditTaskScreen> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _tagsController = TextEditingController();
@@ -31,7 +33,61 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   @override
   void initState() {
     super.initState();
-    _startDate = DateTime.now();
+    _hydrateFromTask();
+  }
+
+  void _hydrateFromTask() {
+    _titleController.text = widget.task['title']?.toString() ?? '';
+    _descriptionController.text = widget.task['description']?.toString() ?? '';
+    _selectedPriority =
+        (widget.task['priority']?.toString().toLowerCase() ?? 'medium');
+
+    final rawProgress = widget.task['progress'];
+    if (rawProgress is num) {
+      _progress = rawProgress.round().clamp(0, 100);
+    } else {
+      _progress =
+          int.tryParse(rawProgress?.toString() ?? '')?.clamp(0, 100) ?? 0;
+    }
+
+    _startDate = _parseDate(widget.task['startDate']?.toString());
+    _dueDate = _parseDate(widget.task['dueDate']?.toString());
+
+    final rawTags = widget.task['tags'];
+    if (rawTags is List) {
+      _tags.addAll(
+        rawTags
+            .map((e) => e.toString().trim())
+            .where((e) => e.isNotEmpty)
+            .take(_maxTags),
+      );
+    } else if (rawTags is String) {
+      _tags.addAll(
+        rawTags
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .take(_maxTags),
+      );
+    }
+  }
+
+  DateTime? _parseDate(String? value) {
+    if (value == null || value.isEmpty) return null;
+
+    final iso = DateTime.tryParse(value);
+    if (iso != null) return iso;
+
+    final parts = value.split('-');
+    if (parts.length == 3) {
+      final d = int.tryParse(parts[0]);
+      final m = int.tryParse(parts[1]);
+      final y = int.tryParse(parts[2]);
+      if (d != null && m != null && y != null) {
+        return DateTime(y, m, d);
+      }
+    }
+    return null;
   }
 
   @override
@@ -144,7 +200,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     }
   }
 
-  Future<void> _handleCreateTask() async {
+  Future<void> _handleUpdateTask() async {
     if (_titleController.text.isEmpty) {
       _showValidationPopup('Please fill Title');
       return;
@@ -152,6 +208,12 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
 
     if (_dueDate == null) {
       _showValidationPopup('Please fill Due Date');
+      return;
+    }
+
+    final taskId = widget.task['id']?.toString() ?? '';
+    if (taskId.isEmpty) {
+      _showValidationPopup('Task id missing, cannot update');
       return;
     }
 
@@ -167,32 +229,23 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
         _showTagLimitMessage();
       }
 
-      final newTask = {
+      final updates = {
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
         'priority': _selectedPriority,
-        'status': 'todo',
         'progress': _progress,
-        'isCompleted': false,
         'tags': payloadTags,
-        'dueDate': _dueDate != null
-            ? '${_dueDate!.year}-${_dueDate!.month.toString().padLeft(2, '0')}-${_dueDate!.day.toString().padLeft(2, '0')}'
-            : '',
+        'dueDate':
+            '${_dueDate!.year}-${_dueDate!.month.toString().padLeft(2, '0')}-${_dueDate!.day.toString().padLeft(2, '0')}',
         'startDate': _startDate != null
             ? '${_startDate!.day.toString().padLeft(2, '0')}-${_startDate!.month.toString().padLeft(2, '0')}-${_startDate!.year}'
             : '',
-        'endDate': '',
-        'createdAt': DateTime.now().toIso8601String(),
-        'updatedAt': DateTime.now().toIso8601String(),
-        'assigneeId': '',
-        'position': 0,
       };
 
-      await _taskController.createTask(newTask);
+      await _taskController.updateTask(taskId, updates);
 
       if (!mounted) return;
-      CustomMessenger.show(context, 'Task created successfully!');
-
+      CustomMessenger.show(context, 'Task updated successfully!');
       Navigator.pop(context, true);
     } catch (e) {
       InfoPopup.show(
@@ -235,7 +288,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
           ),
         ),
         title: const Text(
-          'Create Task',
+          'Edit Task',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -310,7 +363,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _handleCreateTask,
+                    onPressed: _handleUpdateTask,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: appbarColor,
                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -320,7 +373,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                       elevation: 2,
                     ),
                     child: const Text(
-                      'Create Task',
+                      'Update Task',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,

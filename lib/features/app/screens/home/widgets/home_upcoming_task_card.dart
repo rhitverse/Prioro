@@ -17,7 +17,7 @@ class HomeUpcomingTaskCard extends StatelessWidget {
 
   String _getCalendarSvg(Color color) {
     if (color == Colors.red) {
-      return 'assets/svg/redCalendar.svg';
+      return 'assets/svg/highCalendar.svg';
     } else if (color == Colors.orange) {
       return 'assets/svg/orangeCalendar.svg';
     } else if (color == Colors.green) {

@@ -8,7 +8,6 @@ import 'package:prioro/features/app/screens/profile_screen.dart';
 import 'package:prioro/features/app/widgets/bottom_nav_bar.dart';
 import 'package:prioro/features/app/screens/home/widgets/home_gradient_card.dart';
 import 'package:prioro/features/app/screens/home/widgets/home_high_priority_card.dart';
-import 'package:prioro/features/app/screens/home/widgets/home_icon_button.dart';
 import 'package:prioro/features/app/screens/home/widgets/home_upcoming_task_card.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -20,14 +19,17 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int currentIndex = 0;
+  String _taskScreenFilter = 'All';
   late final TaskController _taskController;
   late Future<List<Map<String, dynamic>>> _upcomingTasksFuture;
+  late Future<List<Map<String, dynamic>>> _allTasksFuture;
 
   @override
   void initState() {
     super.initState();
     _taskController = TaskController();
     _upcomingTasksFuture = _loadUpcomingTasks();
+    _allTasksFuture = _taskController.loadTasks();
   }
 
   Future<List<Map<String, dynamic>>> _loadUpcomingTasks() async {
@@ -78,12 +80,14 @@ class _HomeScreenState extends State<HomeScreen> {
               .where((task) => task['id']?.toString() != deletedTaskId)
               .toList(),
         );
+        _allTasksFuture = _taskController.loadTasks();
       });
 
       Future.delayed(const Duration(milliseconds: 700), () {
         if (!mounted) return;
         setState(() {
           _upcomingTasksFuture = _loadUpcomingTasks();
+          _allTasksFuture = _taskController.loadTasks();
         });
       });
       return;
@@ -91,6 +95,39 @@ class _HomeScreenState extends State<HomeScreen> {
 
     setState(() {
       _upcomingTasksFuture = _loadUpcomingTasks();
+      _allTasksFuture = _taskController.loadTasks();
+    });
+  }
+
+  int _countOverdueTasks(List<Map<String, dynamic>> tasks) {
+    return tasks.where(_isOverdue).length;
+  }
+
+  DateTime _parseCreatedAt(dynamic value) {
+    if (value is DateTime) return value;
+
+    return DateTime.tryParse(value?.toString() ?? '') ??
+        DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  List<Map<String, dynamic>> _getRecentCreatedTasks(
+    List<Map<String, dynamic>> tasks, {
+    int limit = 3,
+  }) {
+    final recentTasks = [...tasks];
+    recentTasks.sort(
+      (a, b) => _parseCreatedAt(
+        b['createdAt'],
+      ).compareTo(_parseCreatedAt(a['createdAt'])),
+    );
+
+    return recentTasks.take(limit).toList();
+  }
+
+  void _openTaskScreenWithFilter(String filter) {
+    setState(() {
+      _taskScreenFilter = filter;
+      currentIndex = 1;
     });
   }
 
@@ -106,6 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
           currentIndex: currentIndex,
           onTabChange: (index) => setState(() => currentIndex = index),
           onTaskMutation: _handleTaskMutation,
+          selectedFilter: _taskScreenFilter,
         ),
         ProfileScreen(
           currentIndex: currentIndex,
@@ -193,102 +231,257 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
-                      blurRadius: 14,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [Colors.orange.shade300, appbarColor],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      child: user?.photoURL != null
-                          ? ClipOval(
-                              child: Image.network(
-                                user!.photoURL!,
-                                fit: BoxFit.cover,
-                              ),
-                            )
-                          : const Icon(
-                              Icons.person,
-                              color: Colors.white,
-                              size: 28,
-                            ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            user?.displayName ?? 'User',
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            user?.email ?? '',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade500,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
+              Row(
+                children: [
+                  Expanded(
+                    flex: 6,
+                    child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 14,
-                        vertical: 10,
+                        vertical: 12,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            '23',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.orange.shade600,
-                            ),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 14,
+                            offset: const Offset(0, 4),
                           ),
-                          Text(
-                            'Tasks',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.orange.shade400,
-                              fontWeight: FontWeight.w500,
+                        ],
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Column(
+                            children: [
+                              Container(
+                                width: 70,
+                                height: 70,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.grey.shade100,
+                                ),
+                                child: user?.photoURL != null
+                                    ? ClipOval(
+                                        child: Image.network(
+                                          user!.photoURL!,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.person,
+                                        color: Colors.grey.shade500,
+                                        size: 32,
+                                      ),
+                              ),
+                              const SizedBox(height: 4),
+                              Icon(
+                                Icons.layers_outlined,
+                                size: 22,
+                                color: Colors.grey.shade600,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FutureBuilder<List<Map<String, dynamic>>>(
+                              future: _allTasksFuture,
+                              builder: (context, snapshot) {
+                                final tasks =
+                                    snapshot.data ??
+                                    const <Map<String, dynamic>>[];
+                                final recentTasks = _getRecentCreatedTasks(
+                                  tasks,
+                                );
+
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Recent Activity',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting)
+                                      const Padding(
+                                        padding: EdgeInsets.only(top: 6),
+                                        child: SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        ),
+                                      )
+                                    else if (recentTasks.isEmpty)
+                                      Text(
+                                        'No tasks created yet',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: Colors.grey.shade600,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      )
+                                    else
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: recentTasks.map((task) {
+                                          final title = task['title']
+                                              ?.toString()
+                                              .trim();
+                                          final displayTitle =
+                                              title != null && title.isNotEmpty
+                                              ? title
+                                              : 'Untitled task';
+
+                                          return Padding(
+                                            padding: const EdgeInsets.only(
+                                              bottom: 3,
+                                            ),
+                                            child: Container(
+                                              width: double.infinity,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 6,
+                                                    vertical: 4,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(5),
+                                                color: const Color(0xffDDDDDD),
+                                              ),
+                                              child: Text(
+                                                displayTitle,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  fontSize: 8,
+                                                  color: Colors.black,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                  ],
+                                );
+                              },
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 4,
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 14,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: FutureBuilder<List<Map<String, dynamic>>>(
+                        future: _allTasksFuture,
+                        builder: (context, snapshot) {
+                          final tasks =
+                              snapshot.data ?? const <Map<String, dynamic>>[];
+                          final overdueCount = _countOverdueTasks(tasks);
+                          final totalCount = tasks.length;
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'App Dashboard',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Container(
+                                child: GestureDetector(
+                                  onTap: () =>
+                                      _openTaskScreenWithFilter('Overdue'),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE4574F),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      '$overdueCount Overdue',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      'Total Tasks: $totalCount',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  GestureDetector(
+                                    onTap: () =>
+                                        _openTaskScreenWithFilter('All'),
+                                    child: Container(
+                                      width: 32,
+                                      height: 32,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFF5B357),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.keyboard_arrow_down_rounded,
+                                        size: 20,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 20),
               Row(
@@ -303,7 +496,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         count2: '528',
                         icon: Icons.task_alt_rounded,
                         gradientColors: [const Color(0xFFF5A55A), appbarColor],
-                        onTap: () => setState(() => currentIndex = 1),
+                        onTap: () => _openTaskScreenWithFilter('All'),
                         height: 125,
                       ),
                     ),
@@ -320,7 +513,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         appbarColor,
                         const Color.fromARGB(255, 224, 135, 71),
                       ],
-                      onTap: () {},
+                      onTap: () => _openTaskScreenWithFilter('Completed'),
                       height: 156,
                     ),
                   ),
@@ -351,7 +544,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: Transform.translate(
                       offset: const Offset(0, -9),
-                      child: const HomeHighPriorityCard(),
+                      child: GestureDetector(
+                        onTap: () => _openTaskScreenWithFilter('High priority'),
+                        child: const HomeHighPriorityCard(),
+                      ),
                     ),
                   ),
                 ],
@@ -372,17 +568,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             fontWeight: FontWeight.w700,
                             color: Colors.black87,
                           ),
-                        ),
-                        Row(
-                          children: [
-                            const HomeIconButton(
-                              icon: Icons.chevron_left_rounded,
-                            ),
-                            const SizedBox(width: 6),
-                            const HomeIconButton(
-                              icon: Icons.favorite_border_rounded,
-                            ),
-                          ],
                         ),
                       ],
                     ),

@@ -17,4 +17,8 @@ class TaskController {
   Future<void> deleteTask(String taskId) {
     return _repository.deleteTask(taskId);
   }
+
+  Future<void> updateTask(String taskId, Map<String, dynamic> updates) {
+    return _repository.updateTask(taskId, updates);
+  }
 }

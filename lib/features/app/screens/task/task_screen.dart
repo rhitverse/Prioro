@@ -11,12 +11,14 @@ class TaskScreen extends StatefulWidget {
   final int currentIndex;
   final Function(int) onTabChange;
   final ValueChanged<String?>? onTaskMutation;
+  final String selectedFilter;
 
   const TaskScreen({
     super.key,
     required this.currentIndex,
     required this.onTabChange,
     this.onTaskMutation,
+    this.selectedFilter = 'All',
   });
 
   @override
@@ -31,6 +33,7 @@ class _TaskScreenState extends State<TaskScreen> {
 
   final List<String> filters = [
     'All',
+    'Overdue',
     'High priority',
     'Medium',
     'Low',
@@ -43,6 +46,22 @@ class _TaskScreenState extends State<TaskScreen> {
     _taskController = TaskController();
     _tasksFuture = _taskController.loadTasks();
     _searchController = TextEditingController();
+    selectedFilter = filters.contains(widget.selectedFilter)
+        ? widget.selectedFilter
+        : 'All';
+  }
+
+  @override
+  void didUpdateWidget(covariant TaskScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.selectedFilter != widget.selectedFilter &&
+        filters.contains(widget.selectedFilter) &&
+        selectedFilter != widget.selectedFilter) {
+      setState(() {
+        selectedFilter = widget.selectedFilter;
+      });
+    }
   }
 
   @override
@@ -55,56 +74,52 @@ class _TaskScreenState extends State<TaskScreen> {
     widget.onTaskMutation?.call(deletedTaskId);
   }
 
+  bool _isCompletedTask(Map<String, dynamic> task) {
+    final status = task['status']?.toString().toLowerCase() ?? '';
+    final isCompleted = task['isCompleted'] == true;
+
+    final rawProgress = task['progress'];
+    int progress = 0;
+    if (rawProgress is num) {
+      progress = rawProgress.toInt();
+    } else {
+      progress = int.tryParse(rawProgress?.toString() ?? '') ?? 0;
+    }
+
+    return status == 'completed' || isCompleted || progress >= 100;
+  }
+
+  bool _hasPriority(Map<String, dynamic> task, String priority) {
+    return task['priority']?.toString().toLowerCase() == priority;
+  }
+
   bool _isOverdue(Map<String, dynamic> task) {
     try {
       final dueDateStr = task['dueDate']?.toString() ?? '';
-      final status = task['status']?.toString() ?? '';
-      if (dueDateStr.isEmpty || status == 'completed') return false;
+      if (dueDateStr.isEmpty || _isCompletedTask(task)) return false;
       final dueDate = DateTime.tryParse(dueDateStr);
       if (dueDate == null) return false;
-      return dueDate.isBefore(DateTime.now());
+
+      final dueDateOnly = DateTime(dueDate.year, dueDate.month, dueDate.day);
+      final now = DateTime.now();
+      final todayOnly = DateTime(now.year, now.month, now.day);
+      return dueDateOnly.isBefore(todayOnly);
     } catch (e) {
       print('Error in _isOverdue: $e');
       return false;
     }
   }
 
-  Color _getTaskColor(Map<String, dynamic> task) {
-    try {
-      if (_isOverdue(task)) return Colors.red;
-      final status = task['status']?.toString().toLowerCase() ?? '';
-      switch (status) {
-        case 'completed':
-          return Colors.green;
-        case 'blocked':
-          return Colors.red;
-      }
-      final priority = task['priority']?.toString().toLowerCase() ?? '';
-      switch (priority) {
-        case 'high':
-          return Colors.red;
-        case 'medium':
-          return Colors.orange;
-        case 'low':
-          return Colors.grey;
-      }
-      return Colors.grey;
-    } catch (e) {
-      print('Error in _getTaskColor: $e');
-      return Colors.grey;
-    }
-  }
+  String _getCalendarSvg(Map<String, dynamic> task) {
+    if (_isCompletedTask(task)) return 'assets/svg/greenCalendar.svg';
 
-  String _getCalendarSvg(Color color) {
-    if (color == Colors.red) {
-      return 'assets/svg/redCalendar.svg';
-    } else if (color == Colors.orange) {
-      return 'assets/svg/orangeCalendar.svg';
-    } else if (color == Colors.green) {
-      return 'assets/svg/greenCalendar.svg';
-    } else {
-      return 'assets/svg/greyCalendar.svg';
-    }
+    if (_isOverdue(task)) return 'assets/svg/redCalendar.svg';
+
+    if (_hasPriority(task, 'high')) return 'assets/svg/highCalendar.svg';
+    if (_hasPriority(task, 'medium')) return 'assets/svg/orangeCalendar.svg';
+    if (_hasPriority(task, 'low')) return 'assets/svg/greyCalendar.svg';
+
+    return 'assets/svg/greyCalendar.svg';
   }
 
   String _formatDueDate(String? value) {
@@ -129,15 +144,16 @@ class _TaskScreenState extends State<TaskScreen> {
         filtered = filtered.where((task) {
           try {
             switch (selectedFilter) {
+              case 'Overdue':
+                return _isOverdue(task);
               case 'High priority':
-                return (task['priority']?.toString().toLowerCase() == 'high') ||
-                    _getTaskColor(task) == Colors.red;
+                return _hasPriority(task, 'high');
               case 'Medium':
-                return task['priority']?.toString().toLowerCase() == 'medium';
+                return _getCalendarSvg(task) == 'assets/svg/orangeCalendar.svg';
               case 'Low':
-                return task['priority']?.toString().toLowerCase() == 'low';
+                return _hasPriority(task, 'low');
               case 'Completed':
-                return task['status']?.toString().toLowerCase() == 'completed';
+                return _isCompletedTask(task);
               default:
                 return true;
             }
@@ -364,7 +380,7 @@ class _TaskScreenState extends State<TaskScreen> {
                   itemCount: filteredTasks.length,
                   itemBuilder: (context, index) {
                     final task = filteredTasks[index];
-                    final taskColor = _getTaskColor(task);
+                    final taskCalendar = _getCalendarSvg(task);
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: ClipRRect(
@@ -494,7 +510,7 @@ class _TaskScreenState extends State<TaskScreen> {
                                       ],
                                     ),
                                     child: SvgPicture.asset(
-                                      _getCalendarSvg(taskColor),
+                                      taskCalendar,
                                       width: 48,
                                       height: 48,
                                     ),
