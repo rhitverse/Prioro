@@ -354,8 +354,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                                   ),
                                               decoration: BoxDecoration(
                                                 borderRadius:
-                                                    BorderRadius.circular(10),
-                                                color: const Color(0xffDDDDDD),
+                                                    BorderRadius.circular(12),
+                                                color: const Color(0xffEFEFEF),
                                               ),
                                               child: Text(
                                                 displayTitle,
@@ -364,7 +364,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 style: const TextStyle(
                                                   fontSize: 8,
                                                   color: Colors.black,
-                                                  fontWeight: FontWeight.w600,
+                                                  fontWeight: FontWeight.w400,
                                                 ),
                                               ),
                                             ),
