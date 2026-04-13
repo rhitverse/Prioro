@@ -10,11 +10,13 @@ import 'package:prioro/features/app/screens/task/create_task_screen.dart';
 class TaskScreen extends StatefulWidget {
   final int currentIndex;
   final Function(int) onTabChange;
+  final ValueChanged<String?>? onTaskMutation;
 
   const TaskScreen({
     super.key,
     required this.currentIndex,
     required this.onTabChange,
+    this.onTaskMutation,
   });
 
   @override
@@ -47,6 +49,10 @@ class _TaskScreenState extends State<TaskScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _notifyTaskMutation([String? deletedTaskId]) {
+    widget.onTaskMutation?.call(deletedTaskId);
   }
 
   bool _isOverdue(Map<String, dynamic> task) {
@@ -405,6 +411,7 @@ class _TaskScreenState extends State<TaskScreen> {
                               setState(() {
                                 _tasksFuture = _taskController.loadTasks();
                               });
+                              _notifyTaskMutation(taskId);
                               return true;
                             } catch (e) {
                               if (!mounted) return false;
@@ -451,6 +458,7 @@ class _TaskScreenState extends State<TaskScreen> {
                                     });
                                   },
                                 );
+                                _notifyTaskMutation(deletedId);
                                 return;
                               }
 
@@ -458,6 +466,7 @@ class _TaskScreenState extends State<TaskScreen> {
                                 setState(() {
                                   _tasksFuture = _taskController.loadTasks();
                                 });
+                                _notifyTaskMutation();
                               }
                             },
                             child: Container(
@@ -564,6 +573,7 @@ class _TaskScreenState extends State<TaskScreen> {
             setState(() {
               _tasksFuture = _taskController.loadTasks();
             });
+            _notifyTaskMutation();
           }
         },
         child: const Icon(Icons.add, color: Colors.white, size: 28),

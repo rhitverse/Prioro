@@ -70,6 +70,30 @@ class _HomeScreenState extends State<HomeScreen> {
     return '$day-$month-${parsed.year}';
   }
 
+  void _handleTaskMutation([String? deletedTaskId]) {
+    if (deletedTaskId != null && deletedTaskId.isNotEmpty) {
+      setState(() {
+        _upcomingTasksFuture = _upcomingTasksFuture.then(
+          (tasks) => tasks
+              .where((task) => task['id']?.toString() != deletedTaskId)
+              .toList(),
+        );
+      });
+
+      Future.delayed(const Duration(milliseconds: 700), () {
+        if (!mounted) return;
+        setState(() {
+          _upcomingTasksFuture = _loadUpcomingTasks();
+        });
+      });
+      return;
+    }
+
+    setState(() {
+      _upcomingTasksFuture = _loadUpcomingTasks();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -81,6 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
         TaskScreen(
           currentIndex: currentIndex,
           onTabChange: (index) => setState(() => currentIndex = index),
+          onTaskMutation: _handleTaskMutation,
         ),
         ProfileScreen(
           currentIndex: currentIndex,

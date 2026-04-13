@@ -113,12 +113,19 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
       progressPercent = int.tryParse(rawProgress.toString())?.clamp(0, 100);
     }
 
-    final tags =
-        (widget.task['tags'] as List?)
-            ?.map((e) => e.toString())
-            .where((e) => e.isNotEmpty)
-            .toList() ??
-        [];
+    final rawTags = widget.task['tags'];
+    final tags = rawTags is List
+        ? rawTags
+              .map((e) => e.toString().trim())
+              .where((e) => e.isNotEmpty)
+              .toList()
+        : rawTags is String
+        ? rawTags
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList()
+        : <String>[];
     final startDateLabel = _formatDate(widget.task['startDate']?.toString());
     final dueDateTime = DateTime.tryParse(
       widget.task['dueDate']?.toString() ?? '',
@@ -171,23 +178,23 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
               children: [
                 if (tags.isNotEmpty) ...[
                   SizedBox(
-                    height: 36,
+                    height: 35,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemBuilder: (context, index) {
                         return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          padding: const EdgeInsets.symmetric(horizontal: 18),
                           decoration: BoxDecoration(
                             color: index == 0
                                 ? const Color(0xFFFF6A1F)
-                                : Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(18),
+                                : Color(0xffDDDBDC),
+                            borderRadius: BorderRadius.circular(20),
                           ),
                           alignment: Alignment.center,
                           child: Text(
                             tags[index],
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: index == 0 ? Colors.white : Colors.black87,
                             ),

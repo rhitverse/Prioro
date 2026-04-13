@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:prioro/colors.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:prioro/features/app/screens/task/controller/task_controller.dart';
+import 'package:prioro/features/app/screens/Login/widget/info_popup.dart';
+import 'package:prioro/features/app/widgets/helpfulWidget/custom_messengeer.dart';
 
 class CreateTaskScreen extends StatefulWidget {
   const CreateTaskScreen({super.key});
@@ -20,6 +22,8 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   DateTime? _startDate;
   DateTime? _dueDate;
   int _progress = 0;
+  final List<String> _tags = [];
+  static const int _maxTags = 5;
 
   bool _showTags = false;
   bool _showCompletion = true;
@@ -77,6 +81,203 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
+  void _showTagLimitMessage() {
+    InfoPopup.show(
+      context,
+      'You can add up to 5 tags only',
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  void _showValidationPopup(String message) {
+    InfoPopup.show(context, message, duration: const Duration(seconds: 2));
+  }
+
+  void _addTagFromInput(String rawValue) {
+    final tag = rawValue.trim().replaceAll(',', '');
+    if (tag.isEmpty) return;
+
+    if (_tags.length >= _maxTags) {
+      _tagsController.clear();
+      _showTagLimitMessage();
+      return;
+    }
+
+    final exists = _tags.any((t) => t.toLowerCase() == tag.toLowerCase());
+    if (exists) {
+      _tagsController.clear();
+      return;
+    }
+
+    setState(() {
+      _tags.add(tag);
+      _tagsController.clear();
+    });
+  }
+
+  void _handleTagTextChanged(String value) {
+    if (!value.contains(',')) return;
+
+    final parts = value.split(',');
+    final completedTags = parts.take(parts.length - 1);
+    var changed = false;
+
+    for (final part in completedTags) {
+      if (_tags.length >= _maxTags) {
+        _showTagLimitMessage();
+        break;
+      }
+
+      final candidate = part.trim();
+      if (candidate.isEmpty) continue;
+      final exists = _tags.any(
+        (t) => t.toLowerCase() == candidate.toLowerCase(),
+      );
+      if (exists) continue;
+      _tags.add(candidate);
+      changed = true;
+    }
+
+    final remainder = parts.last.trimLeft();
+    _tagsController.value = TextEditingValue(
+      text: remainder,
+      selection: TextSelection.collapsed(offset: remainder.length),
+    );
+
+    if (changed) {
+      setState(() {});
+    }
+  }
+
+  Widget _buildTagChip(String tag) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            tag,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: () {
+              setState(() => _tags.remove(tag));
+            },
+            child: Icon(Icons.close, size: 12, color: Colors.grey.shade700),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTagsInputField() {
+    final isTagLimitReached = _tags.length >= _maxTags;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_tags.isNotEmpty) ...[
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: _tags.map(_buildTagChip).toList(),
+          ),
+          const SizedBox(height: 8),
+        ],
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: appbarColor, width: 1.2),
+          ),
+          child: TextField(
+            controller: _tagsController,
+            enabled: !isTagLimitReached,
+            textInputAction: TextInputAction.done,
+            onSubmitted: _addTagFromInput,
+            onChanged: _handleTagTextChanged,
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: 'Add tags',
+              hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _handleCreateTask() async {
+    if (_titleController.text.isEmpty) {
+      _showValidationPopup('Please fill Title');
+      return;
+    }
+
+    if (_dueDate == null) {
+      _showValidationPopup('Please fill Due Date');
+      return;
+    }
+
+    try {
+      final pendingTag = _tagsController.text.trim();
+      final payloadTags = [..._tags];
+      if (pendingTag.isNotEmpty && payloadTags.length < _maxTags) {
+        final exists = payloadTags.any(
+          (t) => t.toLowerCase() == pendingTag.toLowerCase(),
+        );
+        if (!exists) payloadTags.add(pendingTag);
+      } else if (pendingTag.isNotEmpty && payloadTags.length >= _maxTags) {
+        _showTagLimitMessage();
+      }
+
+      final newTask = {
+        'title': _titleController.text.trim(),
+        'description': _descriptionController.text.trim(),
+        'priority': _selectedPriority,
+        'status': 'todo',
+        'progress': _progress,
+        'isCompleted': false,
+        'tags': payloadTags,
+        'dueDate': _dueDate != null
+            ? '${_dueDate!.year}-${_dueDate!.month.toString().padLeft(2, '0')}-${_dueDate!.day.toString().padLeft(2, '0')}'
+            : '',
+        'startDate': _startDate != null
+            ? '${_startDate!.day.toString().padLeft(2, '0')}-${_startDate!.month.toString().padLeft(2, '0')}-${_startDate!.year}'
+            : '',
+        'endDate': '',
+        'createdAt': DateTime.now().toIso8601String(),
+        'updatedAt': DateTime.now().toIso8601String(),
+        'assigneeId': '',
+        'position': 0,
+      };
+
+      await _taskController.createTask(newTask);
+
+      if (!mounted) return;
+      CustomMessenger.show(context, 'Task created successfully!');
+
+      Navigator.pop(context, true);
+    } catch (e) {
+      InfoPopup.show(
+        context,
+        'Error: $e',
+        duration: const Duration(seconds: 2),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -120,7 +321,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -154,9 +355,9 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                 const SizedBox(height: 16),
                 _buildTextField(
                   controller: _descriptionController,
-                  hintText: 'And Description.',
+                  hintText: 'Description.',
                   label: 'Description',
-                  maxLines: 3,
+                  maxLines: 6,
                 ),
                 const SizedBox(height: 24),
                 const Text(
@@ -177,57 +378,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () async {
-                      if (_titleController.text.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please enter a title')),
-                        );
-                        return;
-                      }
-
-                      try {
-                        final newTask = {
-                          'title': _titleController.text.trim(),
-                          'description': _descriptionController.text.trim(),
-                          'priority': _selectedPriority,
-                          'status': 'todo',
-                          'progress': _progress,
-                          'isCompleted': false,
-                          'tags': _tagsController.text
-                              .split(',')
-                              .map((e) => e.trim())
-                              .where((e) => e.isNotEmpty)
-                              .toList(),
-                          'dueDate': _dueDate != null
-                              ? '${_dueDate!.year}-${_dueDate!.month.toString().padLeft(2, '0')}-${_dueDate!.day.toString().padLeft(2, '0')}'
-                              : '',
-                          'startDate': _startDate != null
-                              ? '${_startDate!.day.toString().padLeft(2, '0')}-${_startDate!.month.toString().padLeft(2, '0')}-${_startDate!.year}'
-                              : '',
-                          'endDate': '',
-                          'createdAt': DateTime.now().toIso8601String(),
-                          'updatedAt': DateTime.now().toIso8601String(),
-                          'assigneeId': '',
-                          'position': 0,
-                        };
-
-                        await _taskController.createTask(newTask);
-
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Task created successfully!'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-
-                        Navigator.pop(context, true);
-                      } catch (e) {
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(SnackBar(content: Text('Error: $e')));
-                      }
-                    },
+                    onPressed: _handleCreateTask,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: appbarColor,
                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -342,31 +493,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
           firstChild: _buildProgressSlider(),
           secondChild: Padding(
             padding: const EdgeInsets.only(top: 4),
-            child: TextField(
-              controller: _tagsController,
-              decoration: InputDecoration(
-                hintText: 'Add tags',
-                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: appbarColor, width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.grey.shade50,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
-            ),
+            child: _buildTagsInputField(),
           ),
         ),
       ],
@@ -484,7 +611,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                 ],
               ),
               child: SvgPicture.asset(
-                'assets/svg/blackCalendar.svg',
+                'assets/svg/orangeCalendar.svg',
                 width: 28,
                 height: 28,
               ),
