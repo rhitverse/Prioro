@@ -80,7 +80,7 @@ class _TaskScreenState extends State<TaskScreen> {
         case 'medium':
           return Colors.orange;
         case 'low':
-          return Colors.green;
+          return Colors.grey;
       }
       return Colors.grey;
     } catch (e) {
@@ -424,7 +424,36 @@ class _TaskScreenState extends State<TaskScreen> {
                                 ),
                               );
 
-                              // Refresh if needed
+                              if (result is Map &&
+                                  result['deletedTaskId'] != null) {
+                                final deletedId = result['deletedTaskId']
+                                    .toString();
+                                setState(() {
+                                  _tasksFuture = _taskController
+                                      .loadTasks()
+                                      .then(
+                                        (tasks) => tasks
+                                            .where(
+                                              (t) =>
+                                                  t['id']?.toString() !=
+                                                  deletedId,
+                                            )
+                                            .toList(),
+                                      );
+                                });
+                                Future.delayed(
+                                  const Duration(milliseconds: 700),
+                                  () {
+                                    if (!mounted) return;
+                                    setState(() {
+                                      _tasksFuture = _taskController
+                                          .loadTasks();
+                                    });
+                                  },
+                                );
+                                return;
+                              }
+
                               if (result == true) {
                                 setState(() {
                                   _tasksFuture = _taskController.loadTasks();
@@ -531,7 +560,6 @@ class _TaskScreenState extends State<TaskScreen> {
             MaterialPageRoute(builder: (context) => const CreateTaskScreen()),
           );
 
-          // Refresh tasks if a new task was created
           if (result == true) {
             setState(() {
               _tasksFuture = _taskController.loadTasks();

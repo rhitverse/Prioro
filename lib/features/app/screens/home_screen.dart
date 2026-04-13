@@ -414,6 +414,35 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                   );
 
+                                  if (result is Map &&
+                                      result['deletedTaskId'] != null) {
+                                    final deletedId = result['deletedTaskId']
+                                        .toString();
+                                    setState(() {
+                                      _upcomingTasksFuture =
+                                          _loadUpcomingTasks().then(
+                                            (tasks) => tasks
+                                                .where(
+                                                  (t) =>
+                                                      t['id']?.toString() !=
+                                                      deletedId,
+                                                )
+                                                .toList(),
+                                          );
+                                    });
+                                    Future.delayed(
+                                      const Duration(milliseconds: 700),
+                                      () {
+                                        if (!mounted) return;
+                                        setState(() {
+                                          _upcomingTasksFuture =
+                                              _loadUpcomingTasks();
+                                        });
+                                      },
+                                    );
+                                    return;
+                                  }
+
                                   if (result == true) {
                                     setState(() {
                                       _upcomingTasksFuture =
@@ -465,7 +494,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'medium':
         return Colors.orange;
       case 'low':
-        return Colors.green;
+        return Colors.grey;
     }
 
     return Colors.grey;

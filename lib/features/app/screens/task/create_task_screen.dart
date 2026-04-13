@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:prioro/colors.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:prioro/features/app/screens/task/controller/task_controller.dart';
 
 class CreateTaskScreen extends StatefulWidget {
@@ -202,7 +202,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                               ? '${_dueDate!.year}-${_dueDate!.month.toString().padLeft(2, '0')}-${_dueDate!.day.toString().padLeft(2, '0')}'
                               : '',
                           'startDate': _startDate != null
-                              ? '${_startDate!.year}-${_startDate!.month.toString().padLeft(2, '0')}-${_startDate!.day.toString().padLeft(2, '0')}'
+                              ? '${_startDate!.day.toString().padLeft(2, '0')}-${_startDate!.month.toString().padLeft(2, '0')}-${_startDate!.year}'
                               : '',
                           'endDate': '',
                           'createdAt': DateTime.now().toIso8601String(),
@@ -420,8 +420,6 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
           _buildPriorityChip('High', 'high', Colors.red),
           const SizedBox(width: 8),
           _buildPriorityChip('Med', 'medium', Colors.orange),
-          const SizedBox(width: 8),
-          _buildPriorityChip('Complete', 'completed', Colors.green),
           const SizedBox(width: 8),
           _buildPriorityChip('Low', 'low', Colors.grey),
         ],
