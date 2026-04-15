@@ -45,6 +45,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
+  flutter_launcher_icons: ^0.14.4
+
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
@@ -69,6 +71,21 @@ flutter:
     - assets/images/
     - assets/svg/
     - assets/data/
+
+# flutter_launcher_icons configuration
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/applogo.png"
+  web:
+    generate: true
+    image_path: "assets/images/applogo.png"
+  windows:
+    generate: true
+    image_path: "assets/images/applogo.png"
+  macos:
+    generate: true
+    image_path: "assets/images/applogo.png"
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
